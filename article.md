@@ -13,7 +13,7 @@ This is the kind of problem where you'd normally reach for RAG — Retrieval-Aug
 Traditional RAG is brilliant for single-document Q&A. "What are the penalties under the EU AI Act?" — chunk retrieval finds the relevant section, the LLM summarizes it, done. Fast, accurate, useful.
 
 But regulatory comparison isn't single-document Q&A. You're not asking "what does document A say?" — you're asking "how does concept X in document A relate to concept Y in document B, and where do they disagree?" That's a fundamentally different kind of question.
-
+  
 Here's why traditional RAG struggles:
 
 **1. Chunks destroy relationships.**
