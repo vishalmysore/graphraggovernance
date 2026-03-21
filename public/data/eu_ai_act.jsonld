@@ -1,0 +1,472 @@
+{
+  "@context": {
+    "schema": "https://governance.ai/ontology/",
+    "rel": "schema:relationship",
+    "canonical_id": "schema:canonicalId"
+  },
+  "@graph": [
+    {
+      "id": "eu_ai_act",
+      "name": "EU AI Act",
+      "type": "Regulation",
+      "category": "Framework",
+      "canonical_id": "eu_ai_act",
+      "description": "Regulation (EU) 2024/1689 — first comprehensive legal framework for AI systems, establishing harmonized rules across the European Union.",
+      "source": "EU AI Act, Article 1",
+      "relationships": [
+        {"target": "risk_classification", "label": "defines"},
+        {"target": "high_risk_ai", "label": "regulates"},
+        {"target": "prohibited_practices", "label": "prohibits"},
+        {"target": "transparency_obligation", "label": "requires"},
+        {"target": "conformity_assessment", "label": "mandates"},
+        {"target": "eu_ai_office", "label": "established_by"}
+      ]
+    },
+    {
+      "id": "risk_classification",
+      "name": "Risk Classification System",
+      "type": "Concept",
+      "category": "Risk",
+      "canonical_id": "risk_classification",
+      "description": "Four-tier risk classification: Unacceptable, High, Limited, Minimal risk levels for AI systems.",
+      "source": "EU AI Act, Title III",
+      "relationships": [
+        {"target": "unacceptable_risk", "label": "includes"},
+        {"target": "high_risk_ai", "label": "includes"},
+        {"target": "limited_risk", "label": "includes"},
+        {"target": "minimal_risk", "label": "includes"}
+      ]
+    },
+    {
+      "id": "unacceptable_risk",
+      "name": "Unacceptable Risk",
+      "type": "RiskCategory",
+      "category": "Risk",
+      "canonical_id": "unacceptable_risk",
+      "description": "AI systems posing unacceptable risk are banned: social scoring, real-time biometric identification in public spaces (with exceptions), manipulation of vulnerable groups.",
+      "source": "EU AI Act, Article 5",
+      "relationships": [
+        {"target": "prohibited_practices", "label": "triggers"}
+      ]
+    },
+    {
+      "id": "high_risk_ai",
+      "name": "High-Risk AI System",
+      "type": "Entity",
+      "category": "Risk",
+      "canonical_id": "high_risk_ai",
+      "description": "AI systems in critical areas: biometrics, critical infrastructure, education, employment, essential services, law enforcement, migration, justice.",
+      "source": "EU AI Act, Article 6, Annex III",
+      "relationships": [
+        {"target": "risk_management_system", "label": "requires"},
+        {"target": "data_governance", "label": "requires"},
+        {"target": "technical_documentation", "label": "requires"},
+        {"target": "transparency_obligation", "label": "requires"},
+        {"target": "human_oversight", "label": "requires"},
+        {"target": "accuracy_robustness", "label": "requires"},
+        {"target": "conformity_assessment", "label": "subject_to"},
+        {"target": "eu_database_registration", "label": "must_register_in"},
+        {"target": "post_market_monitoring", "label": "requires"}
+      ]
+    },
+    {
+      "id": "limited_risk",
+      "name": "Limited Risk",
+      "type": "RiskCategory",
+      "category": "Risk",
+      "canonical_id": "limited_risk",
+      "description": "AI systems with limited risk (e.g., chatbots, deepfakes) subject only to transparency obligations.",
+      "source": "EU AI Act, Article 50",
+      "relationships": [
+        {"target": "transparency_obligation", "label": "requires"}
+      ]
+    },
+    {
+      "id": "minimal_risk",
+      "name": "Minimal Risk",
+      "type": "RiskCategory",
+      "category": "Risk",
+      "canonical_id": "minimal_risk",
+      "description": "AI systems with minimal risk (e.g., spam filters, AI in video games) — no specific obligations, voluntary codes of conduct encouraged.",
+      "source": "EU AI Act, Article 95"
+    },
+    {
+      "id": "prohibited_practices",
+      "name": "Prohibited AI Practices",
+      "type": "Requirement",
+      "category": "Prohibition",
+      "canonical_id": "prohibited_practices",
+      "description": "Banned uses: social scoring by governments, real-time remote biometric ID in public (with exceptions), subliminal manipulation, exploitation of vulnerabilities.",
+      "source": "EU AI Act, Article 5",
+      "mandatory": true,
+      "relationships": [
+        {"target": "social_scoring", "label": "prohibits"},
+        {"target": "biometric_identification", "label": "restricts"}
+      ]
+    },
+    {
+      "id": "social_scoring",
+      "name": "Social Scoring",
+      "type": "Entity",
+      "category": "Prohibition",
+      "canonical_id": "social_scoring",
+      "description": "AI-based social scoring by public authorities leading to detrimental treatment is prohibited.",
+      "source": "EU AI Act, Article 5(1)(c)",
+      "mandatory": true
+    },
+    {
+      "id": "biometric_identification",
+      "name": "Biometric Identification",
+      "type": "Entity",
+      "category": "Prohibition",
+      "canonical_id": "biometric_identification",
+      "description": "Real-time remote biometric identification in publicly accessible spaces for law enforcement is banned, with narrow exceptions for serious crime.",
+      "source": "EU AI Act, Article 5(1)(d)",
+      "mandatory": true
+    },
+    {
+      "id": "risk_management_system",
+      "name": "Risk Management System",
+      "type": "Requirement",
+      "category": "Governance",
+      "canonical_id": "risk_management_system",
+      "description": "Continuous, iterative risk management process throughout the AI system lifecycle. Must identify, analyze, evaluate, and mitigate risks.",
+      "source": "EU AI Act, Article 9",
+      "mandatory": true,
+      "relationships": [
+        {"target": "testing_procedures", "label": "includes"},
+        {"target": "residual_risk", "label": "must_address"}
+      ]
+    },
+    {
+      "id": "testing_procedures",
+      "name": "Testing & Validation",
+      "type": "Requirement",
+      "category": "Governance",
+      "canonical_id": "testing_procedures",
+      "description": "High-risk AI must undergo testing to identify appropriate risk management measures. Testing must use preliminary defined metrics and probabilistic thresholds.",
+      "source": "EU AI Act, Article 9(7)",
+      "mandatory": true
+    },
+    {
+      "id": "residual_risk",
+      "name": "Residual Risk Management",
+      "type": "Concept",
+      "category": "Governance",
+      "canonical_id": "residual_risk",
+      "description": "After mitigation, remaining risks must be communicated to users. Residual risk must be judged acceptable.",
+      "source": "EU AI Act, Article 9(4)"
+    },
+    {
+      "id": "data_governance",
+      "name": "Data & Data Governance",
+      "type": "Requirement",
+      "category": "Data",
+      "canonical_id": "data_governance",
+      "description": "Training, validation, and testing datasets must be relevant, representative, free of errors, and complete. Must address biases.",
+      "source": "EU AI Act, Article 10",
+      "mandatory": true,
+      "relationships": [
+        {"target": "bias_detection", "label": "requires"},
+        {"target": "data_quality", "label": "ensures"}
+      ]
+    },
+    {
+      "id": "bias_detection",
+      "name": "Bias Detection & Mitigation",
+      "type": "Requirement",
+      "category": "Fairness",
+      "canonical_id": "bias_detection",
+      "description": "Providers must examine datasets for possible biases that may lead to discriminatory outcomes, especially concerning protected groups.",
+      "source": "EU AI Act, Article 10(2)(f)",
+      "mandatory": true
+    },
+    {
+      "id": "data_quality",
+      "name": "Data Quality Standards",
+      "type": "Requirement",
+      "category": "Data",
+      "canonical_id": "data_quality",
+      "description": "Datasets must meet quality criteria: relevance, representativeness, accuracy, completeness appropriate for intended purpose.",
+      "source": "EU AI Act, Article 10(3)",
+      "mandatory": true
+    },
+    {
+      "id": "technical_documentation",
+      "name": "Technical Documentation",
+      "type": "Requirement",
+      "category": "Documentation",
+      "canonical_id": "technical_documentation",
+      "description": "Comprehensive technical documentation must be drawn up before a high-risk AI system is placed on the market. Must demonstrate compliance.",
+      "source": "EU AI Act, Article 11",
+      "mandatory": true,
+      "relationships": [
+        {"target": "record_keeping", "label": "includes"}
+      ]
+    },
+    {
+      "id": "record_keeping",
+      "name": "Record-Keeping & Logging",
+      "type": "Requirement",
+      "category": "Documentation",
+      "canonical_id": "record_keeping",
+      "description": "High-risk AI systems must have automatic logging capabilities to ensure traceability of functioning throughout the system's lifecycle.",
+      "source": "EU AI Act, Article 12",
+      "mandatory": true
+    },
+    {
+      "id": "transparency_obligation",
+      "name": "Transparency",
+      "type": "Principle",
+      "category": "Transparency",
+      "canonical_id": "transparency",
+      "description": "AI systems must be designed to be sufficiently transparent. Users must be informed they are interacting with an AI. High-risk systems need clear instructions for use.",
+      "source": "EU AI Act, Article 13",
+      "mandatory": true,
+      "relationships": [
+        {"target": "explainability", "label": "enables"}
+      ]
+    },
+    {
+      "id": "explainability",
+      "name": "Explainability",
+      "type": "Principle",
+      "category": "Transparency",
+      "canonical_id": "explainability",
+      "description": "Deployers must be able to interpret and use high-risk AI output appropriately. Decisions must be explainable to affected individuals.",
+      "source": "EU AI Act, Article 13(1)"
+    },
+    {
+      "id": "human_oversight",
+      "name": "Human Oversight",
+      "type": "Requirement",
+      "category": "Oversight",
+      "canonical_id": "human_oversight",
+      "description": "High-risk AI systems must be designed to allow effective human oversight. Humans must be able to understand, monitor, and override AI decisions.",
+      "source": "EU AI Act, Article 14",
+      "mandatory": true,
+      "relationships": [
+        {"target": "human_in_the_loop", "label": "includes"},
+        {"target": "override_capability", "label": "requires"}
+      ]
+    },
+    {
+      "id": "human_in_the_loop",
+      "name": "Human-in-the-Loop",
+      "type": "Concept",
+      "category": "Oversight",
+      "canonical_id": "human_in_the_loop",
+      "description": "A natural person must be able to intervene in or override the operation of the high-risk AI system.",
+      "source": "EU AI Act, Article 14(4)"
+    },
+    {
+      "id": "override_capability",
+      "name": "Override & Stop Capability",
+      "type": "Requirement",
+      "category": "Oversight",
+      "canonical_id": "override_capability",
+      "description": "Human overseers must have the ability to decide not to use, override, or reverse the output of the high-risk AI system.",
+      "source": "EU AI Act, Article 14(4)(d)",
+      "mandatory": true
+    },
+    {
+      "id": "accuracy_robustness",
+      "name": "Accuracy, Robustness & Cybersecurity",
+      "type": "Requirement",
+      "category": "Technical",
+      "canonical_id": "accuracy_robustness",
+      "description": "High-risk AI must achieve appropriate levels of accuracy, robustness, and cybersecurity, and perform consistently throughout their lifecycle.",
+      "source": "EU AI Act, Article 15",
+      "mandatory": true,
+      "relationships": [
+        {"target": "cybersecurity", "label": "includes"}
+      ]
+    },
+    {
+      "id": "cybersecurity",
+      "name": "Cybersecurity Measures",
+      "type": "Requirement",
+      "category": "Technical",
+      "canonical_id": "cybersecurity",
+      "description": "High-risk AI must be resilient against attempts to alter use or performance by exploiting vulnerabilities, including adversarial attacks.",
+      "source": "EU AI Act, Article 15(4)",
+      "mandatory": true
+    },
+    {
+      "id": "conformity_assessment",
+      "name": "Conformity Assessment",
+      "type": "Requirement",
+      "category": "Compliance",
+      "canonical_id": "conformity_assessment",
+      "description": "Before placing a high-risk AI system on the market, providers must undergo a conformity assessment to demonstrate compliance with this Regulation.",
+      "source": "EU AI Act, Article 43",
+      "mandatory": true,
+      "relationships": [
+        {"target": "ce_marking", "label": "leads_to"},
+        {"target": "notified_body", "label": "may_involve"}
+      ]
+    },
+    {
+      "id": "ce_marking",
+      "name": "CE Marking",
+      "type": "Requirement",
+      "category": "Compliance",
+      "canonical_id": "ce_marking",
+      "description": "High-risk AI systems must bear the CE marking to indicate conformity. CE marking is affixed after successful conformity assessment.",
+      "source": "EU AI Act, Article 48",
+      "mandatory": true
+    },
+    {
+      "id": "notified_body",
+      "name": "Notified Body",
+      "type": "Entity",
+      "category": "Compliance",
+      "canonical_id": "notified_body",
+      "description": "Independent assessment body designated by Member States to carry out third-party conformity assessments for specific high-risk AI categories.",
+      "source": "EU AI Act, Article 28"
+    },
+    {
+      "id": "eu_database_registration",
+      "name": "EU Database Registration",
+      "type": "Requirement",
+      "category": "Compliance",
+      "canonical_id": "database_registration",
+      "description": "High-risk AI systems must be registered in an EU-wide database before being placed on the market or put into service.",
+      "source": "EU AI Act, Article 71",
+      "mandatory": true
+    },
+    {
+      "id": "post_market_monitoring",
+      "name": "Post-Market Monitoring",
+      "type": "Requirement",
+      "category": "Governance",
+      "canonical_id": "post_market_monitoring",
+      "description": "Providers must establish a post-market monitoring system proportionate to the nature of the AI technology to assess continued compliance.",
+      "source": "EU AI Act, Article 72",
+      "mandatory": true,
+      "relationships": [
+        {"target": "incident_reporting", "label": "includes"}
+      ]
+    },
+    {
+      "id": "incident_reporting",
+      "name": "Serious Incident Reporting",
+      "type": "Requirement",
+      "category": "Governance",
+      "canonical_id": "incident_reporting",
+      "description": "Providers must report serious incidents to the relevant market surveillance authority without undue delay, within 15 days.",
+      "source": "EU AI Act, Article 73",
+      "mandatory": true
+    },
+    {
+      "id": "provider_obligations",
+      "name": "Provider Obligations",
+      "type": "Requirement",
+      "category": "Obligations",
+      "canonical_id": "provider_obligations",
+      "description": "Providers of high-risk AI must ensure compliance, establish quality management systems, and maintain documentation.",
+      "source": "EU AI Act, Article 16",
+      "mandatory": true,
+      "relationships": [
+        {"target": "quality_management", "label": "requires"},
+        {"target": "deployer_obligations", "label": "complemented_by"}
+      ]
+    },
+    {
+      "id": "deployer_obligations",
+      "name": "Deployer Obligations",
+      "type": "Requirement",
+      "category": "Obligations",
+      "canonical_id": "deployer_obligations",
+      "description": "Deployers must use high-risk AI systems in accordance with instructions, ensure human oversight, and monitor operation.",
+      "source": "EU AI Act, Article 26",
+      "mandatory": true
+    },
+    {
+      "id": "quality_management",
+      "name": "Quality Management System",
+      "type": "Requirement",
+      "category": "Governance",
+      "canonical_id": "quality_management",
+      "description": "Providers of high-risk AI must put in place a quality management system covering design, development, testing, and post-market processes.",
+      "source": "EU AI Act, Article 17",
+      "mandatory": true
+    },
+    {
+      "id": "eu_ai_office",
+      "name": "European AI Office",
+      "type": "RegulatoryBody",
+      "category": "Governance",
+      "canonical_id": "ai_governance_body",
+      "description": "EU body responsible for overseeing enforcement, promoting best practices, and coordinating AI governance across Member States.",
+      "source": "EU AI Act, Article 64"
+    },
+    {
+      "id": "penalties",
+      "name": "Penalties & Fines",
+      "type": "Requirement",
+      "category": "Enforcement",
+      "canonical_id": "penalties",
+      "description": "Violations can result in fines up to EUR 35 million or 7% of annual global turnover (prohibited practices), EUR 15 million or 3% for other violations.",
+      "source": "EU AI Act, Article 99",
+      "mandatory": true
+    },
+    {
+      "id": "general_purpose_ai",
+      "name": "General-Purpose AI (GPAI)",
+      "type": "Entity",
+      "category": "GPAI",
+      "canonical_id": "general_purpose_ai",
+      "description": "AI models trained on broad data that can be adapted for various tasks. GPAI providers must provide technical documentation and comply with copyright law.",
+      "source": "EU AI Act, Article 51",
+      "relationships": [
+        {"target": "systemic_risk", "label": "may_pose"},
+        {"target": "transparency_obligation", "label": "requires"},
+        {"target": "technical_documentation", "label": "requires"}
+      ]
+    },
+    {
+      "id": "systemic_risk",
+      "name": "Systemic Risk",
+      "type": "RiskCategory",
+      "category": "GPAI",
+      "canonical_id": "systemic_risk",
+      "description": "GPAI models with systemic risk (>10^25 FLOPs training compute) face additional obligations: adversarial testing, incident reporting, cybersecurity.",
+      "source": "EU AI Act, Article 51(2)",
+      "relationships": [
+        {"target": "testing_procedures", "label": "requires"},
+        {"target": "incident_reporting", "label": "requires"},
+        {"target": "cybersecurity", "label": "requires"}
+      ]
+    },
+    {
+      "id": "fundamental_rights_assessment",
+      "name": "Fundamental Rights Impact Assessment",
+      "type": "Requirement",
+      "category": "Rights",
+      "canonical_id": "fundamental_rights_assessment",
+      "description": "Public sector and certain private deployers of high-risk AI must conduct a fundamental rights impact assessment before deployment.",
+      "source": "EU AI Act, Article 27",
+      "mandatory": true
+    },
+    {
+      "id": "ai_literacy",
+      "name": "AI Literacy",
+      "type": "Requirement",
+      "category": "Training",
+      "canonical_id": "ai_literacy",
+      "description": "Providers and deployers must ensure sufficient AI literacy among their staff and persons dealing with the operation and use of AI systems.",
+      "source": "EU AI Act, Article 4",
+      "mandatory": true
+    },
+    {
+      "id": "regulatory_sandbox",
+      "name": "Regulatory Sandbox",
+      "type": "Concept",
+      "category": "Innovation",
+      "canonical_id": "regulatory_sandbox",
+      "description": "Member States must establish at least one AI regulatory sandbox to facilitate development and testing of innovative AI systems under regulatory oversight.",
+      "source": "EU AI Act, Article 57"
+    }
+  ]
+}

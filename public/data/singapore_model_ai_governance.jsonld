@@ -1,0 +1,392 @@
+{
+  "@context": {
+    "schema": "https://governance.ai/ontology/",
+    "rel": "schema:relationship",
+    "canonical_id": "schema:canonicalId"
+  },
+  "@graph": [
+    {
+      "id": "sg_model_ai_governance",
+      "name": "Singapore Model AI Governance Framework",
+      "type": "Regulation",
+      "category": "Framework",
+      "canonical_id": "sg_model_ai_governance",
+      "description": "Singapore's voluntary framework (2nd edition, 2020) providing guidance on responsible AI governance, organized around two guiding principles.",
+      "source": "Model AI Governance Framework, Section 1",
+      "relationships": [
+        {"target": "sg_risk_classification", "label": "defines"},
+        {"target": "sg_human_oversight", "label": "requires"},
+        {"target": "sg_transparency", "label": "requires"},
+        {"target": "sg_accountability", "label": "establishes"},
+        {"target": "pdpc_singapore", "label": "published_by"},
+        {"target": "sg_ai_verify", "label": "complemented_by"}
+      ]
+    },
+    {
+      "id": "sg_risk_classification",
+      "name": "Risk Assessment & Classification",
+      "type": "Concept",
+      "category": "Risk",
+      "canonical_id": "risk_classification",
+      "description": "Risk is assessed based on probability of harm and severity of harm. Higher risk means greater governance measures needed.",
+      "source": "Model AI Governance Framework, Section 2.1",
+      "relationships": [
+        {"target": "sg_high_risk", "label": "includes"},
+        {"target": "sg_moderate_risk", "label": "includes"},
+        {"target": "sg_low_risk", "label": "includes"},
+        {"target": "sg_severity_of_harm", "label": "considers"},
+        {"target": "sg_probability_of_harm", "label": "considers"}
+      ]
+    },
+    {
+      "id": "sg_high_risk",
+      "name": "High Risk AI Decision",
+      "type": "RiskCategory",
+      "category": "Risk",
+      "canonical_id": "high_risk_ai",
+      "description": "AI decisions with high probability and high severity of harm (e.g., autonomous vehicles, medical diagnosis). Requires human-in-the-loop or human-on-the-loop.",
+      "source": "Model AI Governance Framework, Section 2.1",
+      "relationships": [
+        {"target": "sg_human_in_loop", "label": "requires"},
+        {"target": "sg_risk_management", "label": "requires"}
+      ]
+    },
+    {
+      "id": "sg_moderate_risk",
+      "name": "Moderate Risk AI Decision",
+      "type": "RiskCategory",
+      "category": "Risk",
+      "canonical_id": "moderate_risk",
+      "description": "AI decisions with moderate impact — either high severity/low probability or low severity/high probability. Human-on-the-loop or human-over-the-loop appropriate.",
+      "source": "Model AI Governance Framework, Section 2.1",
+      "relationships": [
+        {"target": "sg_human_over_loop", "label": "may_require"}
+      ]
+    },
+    {
+      "id": "sg_low_risk",
+      "name": "Low Risk AI Decision",
+      "type": "RiskCategory",
+      "category": "Risk",
+      "canonical_id": "minimal_risk",
+      "description": "AI decisions with low probability and low severity of harm. Minimal governance measures needed; human-out-of-the-loop may be acceptable.",
+      "source": "Model AI Governance Framework, Section 2.1"
+    },
+    {
+      "id": "sg_severity_of_harm",
+      "name": "Severity of Harm",
+      "type": "Concept",
+      "category": "Risk",
+      "canonical_id": "severity_of_harm",
+      "description": "Assessment dimension: extent of damage if AI decision goes wrong. Considers reversibility, scale of impact, and nature of harm.",
+      "source": "Model AI Governance Framework, Section 2.1"
+    },
+    {
+      "id": "sg_probability_of_harm",
+      "name": "Probability of Harm",
+      "type": "Concept",
+      "category": "Risk",
+      "canonical_id": "probability_of_harm",
+      "description": "Assessment dimension: likelihood that an AI decision will cause harm. Influenced by data quality, model complexity, deployment context.",
+      "source": "Model AI Governance Framework, Section 2.1"
+    },
+    {
+      "id": "sg_human_oversight",
+      "name": "Human Oversight of AI",
+      "type": "Requirement",
+      "category": "Oversight",
+      "canonical_id": "human_oversight",
+      "description": "Organizations should incorporate human oversight appropriate to the risk level of the AI application. Three levels defined.",
+      "source": "Model AI Governance Framework, Section 2.2",
+      "mandatory": false,
+      "relationships": [
+        {"target": "sg_human_in_loop", "label": "includes"},
+        {"target": "sg_human_over_loop", "label": "includes"},
+        {"target": "sg_human_out_loop", "label": "includes"}
+      ]
+    },
+    {
+      "id": "sg_human_in_loop",
+      "name": "Human-in-the-Loop",
+      "type": "Concept",
+      "category": "Oversight",
+      "canonical_id": "human_in_the_loop",
+      "description": "Human involved in every AI decision cycle. AI provides recommendation, human makes final decision. Required for high-risk AI decisions.",
+      "source": "Model AI Governance Framework, Section 2.2"
+    },
+    {
+      "id": "sg_human_over_loop",
+      "name": "Human-over-the-Loop",
+      "type": "Concept",
+      "category": "Oversight",
+      "canonical_id": "human_over_the_loop",
+      "description": "Human monitors AI operation and can intervene or override when necessary. AI operates semi-autonomously with human supervision.",
+      "source": "Model AI Governance Framework, Section 2.2"
+    },
+    {
+      "id": "sg_human_out_loop",
+      "name": "Human-out-of-the-Loop",
+      "type": "Concept",
+      "category": "Oversight",
+      "canonical_id": "human_out_of_the_loop",
+      "description": "AI operates fully autonomously without human intervention. Acceptable only for low-risk decisions.",
+      "source": "Model AI Governance Framework, Section 2.2"
+    },
+    {
+      "id": "sg_accountability",
+      "name": "Accountability",
+      "type": "Principle",
+      "category": "Governance",
+      "canonical_id": "accountability",
+      "description": "Organizations using AI should be accountable for ensuring proper governance, assigning responsibility at the board/management level.",
+      "source": "Model AI Governance Framework, Section 3",
+      "relationships": [
+        {"target": "sg_internal_governance", "label": "requires"},
+        {"target": "sg_risk_management", "label": "requires"},
+        {"target": "sg_operations_management", "label": "requires"}
+      ]
+    },
+    {
+      "id": "sg_internal_governance",
+      "name": "Internal Governance Structures",
+      "type": "Requirement",
+      "category": "Governance",
+      "canonical_id": "quality_management",
+      "description": "Clear roles and responsibilities for AI governance. Board or senior management should be accountable. Designate a responsible person or committee.",
+      "source": "Model AI Governance Framework, Section 3.1",
+      "mandatory": false,
+      "relationships": [
+        {"target": "sg_training_staff", "label": "requires"}
+      ]
+    },
+    {
+      "id": "sg_training_staff",
+      "name": "Staff Training & Awareness",
+      "type": "Requirement",
+      "category": "Training",
+      "canonical_id": "ai_literacy",
+      "description": "Organizations should provide training to staff involved in AI development and deployment. Staff should understand AI system limitations.",
+      "source": "Model AI Governance Framework, Section 3.1",
+      "mandatory": false
+    },
+    {
+      "id": "sg_risk_management",
+      "name": "Risk Management",
+      "type": "Requirement",
+      "category": "Governance",
+      "canonical_id": "risk_management_system",
+      "description": "Organizations should adopt a risk management approach proportionate to the risk of the AI application. Assess risks continuously.",
+      "source": "Model AI Governance Framework, Section 3.2",
+      "mandatory": false,
+      "relationships": [
+        {"target": "sg_testing", "label": "includes"},
+        {"target": "sg_monitoring", "label": "includes"}
+      ]
+    },
+    {
+      "id": "sg_testing",
+      "name": "Testing & Validation",
+      "type": "Requirement",
+      "category": "Governance",
+      "canonical_id": "testing_procedures",
+      "description": "AI systems should undergo testing before deployment and regularly during operation. Testing should cover accuracy, bias, robustness.",
+      "source": "Model AI Governance Framework, Section 3.3",
+      "mandatory": false
+    },
+    {
+      "id": "sg_monitoring",
+      "name": "Ongoing Monitoring",
+      "type": "Requirement",
+      "category": "Governance",
+      "canonical_id": "post_market_monitoring",
+      "description": "Organizations should monitor AI systems during deployment to ensure continued acceptable performance and detect drift or new risks.",
+      "source": "Model AI Governance Framework, Section 3.3",
+      "mandatory": false
+    },
+    {
+      "id": "sg_operations_management",
+      "name": "Operations Management",
+      "type": "Requirement",
+      "category": "Governance",
+      "canonical_id": "operations_management",
+      "description": "Establish processes for selecting, deploying, and managing AI systems. Include decision-making processes for when to use AI.",
+      "source": "Model AI Governance Framework, Section 3.3",
+      "mandatory": false,
+      "relationships": [
+        {"target": "sg_data_management", "label": "includes"},
+        {"target": "sg_incident_management", "label": "includes"}
+      ]
+    },
+    {
+      "id": "sg_data_management",
+      "name": "Data Management",
+      "type": "Requirement",
+      "category": "Data",
+      "canonical_id": "data_governance",
+      "description": "Ensure data quality, provenance tracking, and appropriate consent. Data should be representative and free from biases.",
+      "source": "Model AI Governance Framework, Section 3.3",
+      "mandatory": false,
+      "relationships": [
+        {"target": "sg_bias_mitigation", "label": "requires"},
+        {"target": "sg_data_provenance", "label": "includes"}
+      ]
+    },
+    {
+      "id": "sg_bias_mitigation",
+      "name": "Bias Mitigation",
+      "type": "Requirement",
+      "category": "Fairness",
+      "canonical_id": "bias_detection",
+      "description": "Organizations should implement measures to minimize bias in data and algorithms. Regular checks for discriminatory outcomes.",
+      "source": "Model AI Governance Framework, Section 3.3",
+      "mandatory": false
+    },
+    {
+      "id": "sg_data_provenance",
+      "name": "Data Provenance",
+      "type": "Concept",
+      "category": "Data",
+      "canonical_id": "data_provenance",
+      "description": "Track origin, movement, and transformation of data used in AI systems. Important for accountability and reproducibility.",
+      "source": "Model AI Governance Framework, Section 3.3"
+    },
+    {
+      "id": "sg_incident_management",
+      "name": "Incident Management",
+      "type": "Requirement",
+      "category": "Governance",
+      "canonical_id": "incident_reporting",
+      "description": "Establish processes for reporting and managing AI-related incidents. Learn from incidents to improve AI governance.",
+      "source": "Model AI Governance Framework, Section 3.3",
+      "mandatory": false
+    },
+    {
+      "id": "sg_transparency",
+      "name": "Transparency & Disclosure",
+      "type": "Principle",
+      "category": "Transparency",
+      "canonical_id": "transparency",
+      "description": "Organizations should be transparent about their use of AI. Proactively disclose when AI is used in decision-making affecting individuals.",
+      "source": "Model AI Governance Framework, Section 4",
+      "mandatory": false,
+      "relationships": [
+        {"target": "sg_explainability", "label": "includes"},
+        {"target": "sg_disclosure", "label": "includes"}
+      ]
+    },
+    {
+      "id": "sg_explainability",
+      "name": "Explainability",
+      "type": "Principle",
+      "category": "Transparency",
+      "canonical_id": "explainability",
+      "description": "Organizations should provide meaningful explanations of AI-augmented decisions. Level of explanation should match the impact of the decision.",
+      "source": "Model AI Governance Framework, Section 4.1"
+    },
+    {
+      "id": "sg_disclosure",
+      "name": "Proactive Disclosure",
+      "type": "Requirement",
+      "category": "Transparency",
+      "canonical_id": "proactive_disclosure",
+      "description": "Organizations should proactively inform individuals when AI is used in decisions that significantly affect them. Provide avenues for redress.",
+      "source": "Model AI Governance Framework, Section 4.2",
+      "mandatory": false
+    },
+    {
+      "id": "sg_fairness",
+      "name": "Fairness",
+      "type": "Principle",
+      "category": "Fairness",
+      "canonical_id": "fairness",
+      "description": "AI systems should be designed and operated to be fair, avoiding unjust discrimination. Applies across the AI lifecycle.",
+      "source": "Model AI Governance Framework, Section 4.3",
+      "relationships": [
+        {"target": "sg_bias_mitigation", "label": "requires"},
+        {"target": "sg_redress_mechanism", "label": "requires"}
+      ]
+    },
+    {
+      "id": "sg_redress_mechanism",
+      "name": "Redress Mechanism",
+      "type": "Requirement",
+      "category": "Rights",
+      "canonical_id": "redress_mechanism",
+      "description": "Provide accessible channels for individuals to seek redress if adversely affected by AI decisions.",
+      "source": "Model AI Governance Framework, Section 4.2",
+      "mandatory": false
+    },
+    {
+      "id": "pdpc_singapore",
+      "name": "Personal Data Protection Commission",
+      "type": "RegulatoryBody",
+      "category": "Governance",
+      "canonical_id": "ai_governance_body",
+      "description": "Singapore's advisory body responsible for AI governance guidance. Published the Model AI Governance Framework. Advisory (not mandatory) approach.",
+      "source": "Model AI Governance Framework"
+    },
+    {
+      "id": "sg_ai_verify",
+      "name": "AI Verify",
+      "type": "Concept",
+      "category": "Compliance",
+      "canonical_id": "ai_verify_toolkit",
+      "description": "Singapore's AI governance testing framework and toolkit. Provides standardized tests for transparency, fairness, robustness, accountability.",
+      "source": "AI Verify Foundation",
+      "relationships": [
+        {"target": "sg_testing", "label": "supports"},
+        {"target": "sg_transparency", "label": "tests"},
+        {"target": "sg_fairness", "label": "tests"}
+      ]
+    },
+    {
+      "id": "sg_autonomous_decision",
+      "name": "Autonomous Decision-Making",
+      "type": "Concept",
+      "category": "Ethics",
+      "canonical_id": "autonomous_decision",
+      "description": "Framework considers when AI should make decisions autonomously vs with human involvement, based on risk-impact assessment.",
+      "source": "Model AI Governance Framework, Section 2.2"
+    },
+    {
+      "id": "sg_sector_specific",
+      "name": "Sector-Specific Guidance",
+      "type": "Concept",
+      "category": "Implementation",
+      "canonical_id": "sector_guidance",
+      "description": "Singapore provides sector-specific AI governance guidance (finance, healthcare) complementing the general framework.",
+      "source": "Model AI Governance Framework, Section 5",
+      "relationships": [
+        {"target": "sg_financial_ai", "label": "includes"},
+        {"target": "sg_healthcare_ai", "label": "includes"}
+      ]
+    },
+    {
+      "id": "sg_financial_ai",
+      "name": "Financial Sector AI Governance",
+      "type": "Concept",
+      "category": "Implementation",
+      "canonical_id": "financial_sector_ai",
+      "description": "MAS (Monetary Authority of Singapore) provides FEAT principles for responsible AI in finance: Fairness, Ethics, Accountability, Transparency.",
+      "source": "MAS FEAT Principles"
+    },
+    {
+      "id": "sg_healthcare_ai",
+      "name": "Healthcare AI Governance",
+      "type": "Concept",
+      "category": "Implementation",
+      "canonical_id": "healthcare_sector_ai",
+      "description": "Sector-specific governance for AI in healthcare, emphasizing patient safety, clinical validation, and data privacy.",
+      "source": "Model AI Governance Framework, Section 5"
+    },
+    {
+      "id": "sg_ethics_review",
+      "name": "Ethics Review Board",
+      "type": "Concept",
+      "category": "Governance",
+      "canonical_id": "ethics_review",
+      "description": "Organizations should consider establishing an ethics review board or process to assess AI applications for ethical implications.",
+      "source": "Model AI Governance Framework, Section 3.1"
+    }
+  ]
+}
