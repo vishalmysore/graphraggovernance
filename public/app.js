@@ -1,13 +1,175 @@
 /**
  * GraphRAG Governance — Frontend Logic
  * AI Framework Alignment & Knowledge Graph Comparison
+ * Uses WebLLM for local in-browser inference (no API key required)
  */
+
+/* ========== TAB SWITCHING ========== */
+
+function switchTab(tab) {
+    document.getElementById('tabFramework').style.display = tab === 'framework' ? '' : 'none';
+    document.getElementById('tabSearch').style.display = tab === 'search' ? '' : 'none';
+    document.getElementById('tabBtnFramework').classList.toggle('active', tab === 'framework');
+    document.getElementById('tabBtnSearch').classList.toggle('active', tab === 'search');
+}
+
+function switchToFrameworkTab() {
+    switchTab('framework');
+}
+
+/* ========== WEB SEARCH ========== */
+
+let searchCombinedText = null;
+let searchNetwork = null;
+
+function setSearchStatus(msg, type = '') {
+    const el = document.getElementById('searchStatus');
+    el.innerText = msg;
+    el.className = 'status-bar ' + type;
+}
+
+function setSearchProgress(text, pct) {
+    const div = document.getElementById('searchProgress');
+    const bar = document.getElementById('searchProgressBar');
+    const label = document.getElementById('searchProgressText');
+    if (text === null) { div.style.display = 'none'; return; }
+    div.style.display = '';
+    label.innerText = text;
+    if (pct !== undefined) bar.style.width = Math.round(pct * 100) + '%';
+}
+
+async function runWebSearch() {
+    const query = document.getElementById('searchQuery').value.trim();
+    if (!query) { setSearchStatus('Enter a search query.', 'error'); return; }
+
+    setSearchStatus(`Searching for "${query}"...`, 'loading');
+    document.getElementById('searchResults').style.display = 'none';
+    document.getElementById('searchGraphArea').style.display = 'none';
+    searchCombinedText = null;
+
+    try {
+        const resp = await axios.post('/api/web-search', { query, maxPages: 3 });
+        const { pages, combinedText } = resp.data;
+
+        searchCombinedText = combinedText;
+
+        // Show source chips
+        const list = document.getElementById('searchResultsList');
+        list.innerHTML = '';
+        pages.forEach(p => {
+            const a = document.createElement('a');
+            a.className = 'search-chip';
+            a.href = p.url;
+            a.target = '_blank';
+            a.title = p.url;
+            a.textContent = '🔗 ' + (p.title || p.url).substring(0, 40);
+            list.appendChild(a);
+        });
+
+        document.getElementById('searchResults').style.display = '';
+        setSearchStatus(`Found ${pages.length} source(s). Load a model then build a graph.`, 'success');
+    } catch (e) {
+        setSearchStatus('Search failed: ' + (e.response?.data?.error || e.message), 'error');
+    }
+}
+
+async function buildSearchGraph(role) {
+    if (!searchCombinedText) { setSearchStatus('Run a search first.', 'error'); return; }
+    if (!LLM.isReady()) { setSearchStatus('Please load a local model first (Framework Analysis tab).', 'error'); return; }
+
+    const query = document.getElementById('searchQuery').value.trim();
+    document.getElementById('btnSearchBase').disabled = true;
+    document.getElementById('btnSearchVariant').disabled = true;
+    setSearchProgress('Inferring schema from search results...', 0.1);
+
+    try {
+        const schema = await inferSchemaLocal(query, searchCombinedText);
+        setSearchProgress('Building knowledge graph...', 0.5);
+
+        const graph = await generateGraphLocal(searchCombinedText, schema, {
+            country: 'Web',
+            source: `Web Search: ${query}`
+        });
+        setSearchProgress(null);
+
+        // Render in search graph area
+        const nodes = (graph['@graph'] || []);
+        document.getElementById('searchGraphLabel').textContent =
+            role === 'base' ? '📊 Base Graph (from web search)' : '🔀 Variant Graph (from web search)';
+        document.getElementById('searchNodeCount').textContent = nodes.length;
+        document.getElementById('searchGraphArea').style.display = '';
+        renderSearchGraph(nodes);
+
+        // Load into framework tab state
+        if (role === 'base') {
+            graphBase = graph;
+            setSearchStatus(`Graph loaded as Base (${nodes.length} nodes). Switch to Framework Analysis to compare.`, 'success');
+        } else {
+            graphVariant = graph;
+            setSearchStatus(`Graph loaded as Variant (${nodes.length} nodes). Switch to Framework Analysis to compare.`, 'success');
+        }
+    } catch (e) {
+        setSearchProgress(null);
+        setSearchStatus('Graph build failed: ' + e.message, 'error');
+    } finally {
+        document.getElementById('btnSearchBase').disabled = false;
+        document.getElementById('btnSearchVariant').disabled = false;
+    }
+}
+
+function renderSearchGraph(rawNodes) {
+    const flat = flattenGraph(rawNodes);
+    const nodes = flat.map(n => ({
+        id: n.id,
+        label: `${n.name || n.id}\n[${n.type || 'Req'}]`,
+        title: `Type: ${n.type}\nCanonical: ${n.canonical_id || 'N/A'}`,
+        color: { background: '#06b6d4', border: '#ffffff' },
+        font: { color: '#ffffff', size: 13 },
+        shadow: { enabled: true }
+    }));
+
+    const nodeIdSet = new Set(nodes.map(n => n.id));
+    const edgeSet = new Set();
+    const edges = [];
+    flat.forEach(n => {
+        (n.relationships || []).forEach(rel => {
+            const key = `${n.id}->${rel.target}`;
+            if (!edgeSet.has(key) && nodeIdSet.has(rel.target)) {
+                edgeSet.add(key);
+                edges.push({ from: n.id, to: rel.target, arrows: 'to', label: rel.label,
+                    color: { color: getRelationshipColor(rel.label), opacity: 0.7 }, width: 1.5,
+                    font: { size: 10, color: '#999', strokeWidth: 0 } });
+            }
+        });
+        (n.hasField || []).forEach(c => {
+            const key = `${n.id}->${c}`;
+            if (!edgeSet.has(key) && nodeIdSet.has(c)) {
+                edgeSet.add(key);
+                edges.push({ from: n.id, to: c, arrows: 'to', label: 'contains',
+                    color: { color: '#8b5cf6', opacity: 0.7 }, width: 1.5 });
+            }
+        });
+    });
+
+    if (searchNetwork) searchNetwork.destroy();
+    searchNetwork = new vis.Network(
+        document.getElementById('searchGraphContainer'),
+        { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) },
+        {
+            nodes: { shape: 'dot', size: 18, font: { size: 13, color: '#ffffff' } },
+            edges: { smooth: { type: 'cubicBezier', roundness: 0.4 }, arrows: { to: { scaleFactor: 0.7 } } },
+            layout: { hierarchical: { enabled: edges.length > 0, direction: 'UD', sortMethod: 'hubsize', levelSeparation: 120, nodeSpacing: 180 } },
+            physics: { enabled: edges.length === 0 }
+        }
+    );
+    setTimeout(() => searchNetwork.fit(), 500);
+}
 
 let network = null;
 let graphBase = null;
 let graphVariant = null;
 let lastResults = null;
-let staticMode = false; // true when running on GitHub Pages (no backend)
+let staticMode = false;
 
 /* ========== CLIENT-SIDE COMPARISON ENGINE ========== */
 
@@ -147,14 +309,144 @@ function compareGraphsLocal(graphBaseData, graphVariantData) {
     };
 }
 
-function getConfig() {
-    return {
-        apiLink: document.getElementById('apiLink').value,
-        apiKey: document.getElementById('apiKey').value,
-        model: document.getElementById('model').value,
-        temperature: 0
-    };
+/* ========== LOCAL LLM INFERENCE ========== */
+
+function extractJson(text) {
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start !== -1 && end !== -1) return text.substring(start, end + 1);
+    return text;
 }
+
+async function inferSchemaLocal(standardName, documentText) {
+    const systemPrompt = `You are an AI governance regulatory analyst specializing in AI governance frameworks.
+Given the AI governance framework text, extract entities and relationships as a JSON-LD knowledge graph.
+
+ENTITY TYPES TO EXTRACT:
+- Regulation: The framework/act itself
+- RiskCategory: Risk classification levels (e.g., High Risk, Unacceptable Risk)
+- Requirement: Specific obligations or mandates
+- Principle: Guiding principles (e.g., Transparency, Fairness, Accountability)
+- Entity: Specific concepts or systems (e.g., AI System, Biometric ID)
+- Concept: Abstract concepts (e.g., Risk Classification, Human-in-the-Loop)
+- RegulatoryBody: Organizations responsible for enforcement/guidance
+- Process: Procedures or assessment processes
+
+EACH NODE MUST HAVE:
+- id: unique identifier (lowercase, underscore-separated)
+- name: human-readable name
+- type: one of the entity types above
+- category: domain group (Risk, Governance, Transparency, Fairness, Data, Compliance, Enforcement, etc.)
+- canonical_id: normalized key for cross-framework matching
+- description: clear description of the entity
+- source: reference to the source section/article
+- mandatory: true/false (if applicable)
+
+RELATIONSHIPS (in a "relationships" array on each node):
+- Each relationship: {"target": "target_node_id", "label": "relationship_type"}
+
+Return ONLY valid JSON: { "@context": {}, "@graph": [{entity1}, {entity2}, ...] }`;
+
+    const userPrompt = `Framework: ${standardName}\nContent:\n${documentText.substring(0, 6000)}`;
+
+    const text = await LLM.callLLM([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+    ]);
+
+    return JSON.parse(extractJson(text));
+}
+
+const CANONICAL_DEFAULTS = [
+    'risk_classification (type: Concept)',
+    'high_risk_ai (type: Entity)',
+    'unacceptable_risk (type: RiskCategory)',
+    'minimal_risk (type: RiskCategory)',
+    'transparency (type: Principle)',
+    'explainability (type: Principle)',
+    'human_oversight (type: Requirement)',
+    'human_in_the_loop (type: Concept)',
+    'risk_management_system (type: Requirement)',
+    'data_governance (type: Requirement)',
+    'bias_detection (type: Requirement)',
+    'testing_procedures (type: Requirement)',
+    'conformity_assessment (type: Requirement)',
+    'post_market_monitoring (type: Requirement)',
+    'incident_reporting (type: Requirement)',
+    'provider_obligations (type: Requirement)',
+    'deployer_obligations (type: Requirement)',
+    'quality_management (type: Requirement)',
+    'ai_governance_body (type: RegulatoryBody)',
+    'penalties (type: Requirement)',
+    'accountability (type: Principle)',
+    'fairness (type: Principle)',
+    'ai_literacy (type: Requirement)',
+    'prohibited_practices (type: Requirement)'
+];
+
+async function generateGraphLocal(documentText, masterSchema, contextMetadata) {
+    const concepts = new Set(CANONICAL_DEFAULTS);
+    if (masterSchema && masterSchema['@graph']) {
+        masterSchema['@graph'].forEach(node => {
+            if (node.canonical_id) concepts.add(`${node.canonical_id} (type: ${node.type || 'Requirement'})`);
+        });
+    }
+    const canonicalRef = [...concepts].map(c => `- ${c}`).join('\n');
+
+    const systemPrompt = `You are an AI governance analyst building knowledge graphs from regulatory documents.
+Extract entities and relationships from the document and map each to canonical governance concepts.
+
+ENTITY TYPES: Regulation, RiskCategory, Requirement, Principle, Entity, Concept, RegulatoryBody, Process
+
+EACH NODE MUST HAVE:
+- id: unique identifier
+- name: short human-readable name
+- type: one of the entity types above
+- category: domain group
+- canonical_id: normalized key matching base framework concepts (see list below). Set to null if new concept.
+- description: clear description
+- source: "${contextMetadata.source}"
+- mandatory: true/false
+- is_extension: true ONLY if this concept does NOT exist in the base framework
+
+RELATIONSHIPS array: [{"target": "node_id", "label": "relationship_type"}]
+
+CANONICAL IDs to match against:
+${canonicalRef}
+
+OUTPUT ONLY valid JSON: { "@context": {}, "@graph": [{entity1}, {entity2}, ...] }`;
+
+    const userPrompt = `Extract governance entities from:
+Document: ${contextMetadata.source}
+Region: ${contextMetadata.country}
+
+TEXT:
+${documentText.substring(0, 5000)}`;
+
+    const text = await LLM.callLLM([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+    ]);
+
+    let result = JSON.parse(extractJson(text));
+    if (!result['@graph']) {
+        result = {
+            "@context": masterSchema['@context'] || {},
+            "@graph": result.graph || result.nodes || (Array.isArray(result) ? result : [result])
+        };
+    }
+
+    if (Array.isArray(result['@graph'])) {
+        result['@graph'] = result['@graph'].map(node => {
+            if (!node.hasOwnProperty('canonical_id')) { node.canonical_id = null; node.is_extension = true; }
+            return node;
+        });
+    }
+
+    return result;
+}
+
+/* ========== UI HELPERS ========== */
 
 function setStatus(msg, type = '') {
     const el = document.getElementById('status');
@@ -162,9 +454,28 @@ function setStatus(msg, type = '') {
     el.className = 'status-bar ' + type;
 }
 
+function setModelProgress(text, pct) {
+    const div = document.getElementById('modelProgress');
+    const bar = document.getElementById('modelProgressBar');
+    const label = document.getElementById('modelProgressText');
+    if (text === null) { div.style.display = 'none'; return; }
+    div.style.display = '';
+    label.innerText = text;
+    if (pct !== undefined) bar.style.width = Math.round(pct * 100) + '%';
+}
+
 /* ========== INITIALIZATION ========== */
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Populate model selector
+    const sel = document.getElementById('modelSelect');
+    LLM.WEBLLM_MODELS.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = m.label;
+        sel.appendChild(opt);
+    });
+
     initDropZone();
 });
 
@@ -183,32 +494,61 @@ function initDropZone() {
     });
 }
 
-/* ========== API ACTIONS ========== */
+/* ========== MODEL LOADING ========== */
 
-async function testApiConnection() {
-    setStatus('Testing API connection...', 'loading');
+async function loadLocalModel() {
+    const modelId = document.getElementById('modelSelect').value;
+    const btn = document.getElementById('btnLoadModel');
+    btn.disabled = true;
+    setStatus(`Loading ${modelId}... (first load downloads the model)`, 'loading');
+    setModelProgress('Initializing...', 0);
+
     try {
-        const resp = await axios.post('/api/test-api', {
-            openaiConfig: JSON.stringify(getConfig())
+        await LLM.loadModel(modelId, (text, progress) => {
+            setModelProgress(text, progress);
         });
-        setStatus('API Connected: ' + resp.data.message, 'success');
+        setModelProgress(null);
+        btn.disabled = false;
+        setStatus('Model ready. You can now load a base framework.', 'success');
     } catch (e) {
-        setStatus('API Failed: ' + (e.response?.data?.error || e.message), 'error');
+        setModelProgress(null);
+        btn.disabled = false;
+        setStatus('Model load failed: ' + e.message, 'error');
     }
 }
 
+/* ========== MAIN ACTIONS ========== */
+
 async function loadBaseGraph() {
+    if (!LLM.isReady()) {
+        setStatus('Please load a local model first.', 'error');
+        return;
+    }
+
     const standard = document.getElementById('standardSelect').value;
     setStatus(`Loading base framework: ${standard}...`, 'loading');
 
     try {
-        const resp = await axios.post('/api/standard-base-graph', {
-            standard,
-            openaiConfig: JSON.stringify(getConfig())
-        });
+        // Fetch spec text from backend (no LLM on server)
+        const resp = await axios.get('/api/get-spec', { params: { standard } });
+        const { specText, cached, graph: cachedGraph, schema: cachedSchema } = resp.data;
 
-        graphBase = resp.data.graph;
-        setStatus(`Base framework loaded${resp.data.cached ? ' (cached)' : ''}.`, 'success');
+        if (cached) {
+            graphBase = cachedGraph;
+            setStatus(`Base framework loaded (cached).`, 'success');
+        } else {
+            setStatus(`Inferring schema for ${standard}...`, 'loading');
+            const schema = await inferSchemaLocal(standard, specText);
+
+            setStatus(`Building base graph for ${standard}...`, 'loading');
+            const graph = await generateGraphLocal(specText, schema, { country: 'Base', source: `Spec: ${standard}` });
+
+            // Cache on server
+            await axios.post('/api/cache-graph', { standard, graph, schema });
+
+            graphBase = graph;
+            setStatus(`Base framework loaded.`, 'success');
+        }
 
         if (graphVariant) {
             runComparison();
@@ -217,7 +557,7 @@ async function loadBaseGraph() {
             renderStandaloneGraph(graphBase['@graph'] || [], 'BASE', '#8b5cf6');
         }
     } catch (e) {
-        setStatus('Failed: ' + (e.response?.data?.error || e.message), 'error');
+        setStatus('Failed: ' + e.message, 'error');
     }
 }
 
@@ -225,25 +565,36 @@ async function handleFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
 
+    if (!LLM.isReady()) {
+        setStatus('Please load a local model first.', 'error');
+        return;
+    }
+
     const standard = document.getElementById('standardSelect').value;
     const country = document.getElementById('country').value || 'Variant';
     const source = document.getElementById('source').value || file.name;
 
-    setStatus(`Processing ${file.name}...`, 'loading');
+    setStatus(`Parsing ${file.name}...`, 'loading');
 
     try {
+        // Upload PDF for text extraction only (no LLM on server)
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('standard', standard);
-        formData.append('country', country);
-        formData.append('source', source);
-        formData.append('openaiConfig', JSON.stringify(getConfig()));
-
-        const resp = await axios.post('/api/process-variant', formData, {
+        const parseResp = await axios.post('/api/parse-pdf', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
+        const extractedText = parseResp.data.text;
 
-        graphVariant = resp.data.graph;
+        setStatus(`Generating variant graph for ${country}...`, 'loading');
+
+        const safeName = standard.toLowerCase().replace(/\s/g, '_');
+        let schema = { "@context": {}, "@graph": [], name: standard };
+        try {
+            const schemaResp = await axios.get('/api/get-schema', { params: { standard } });
+            if (schemaResp.data.schema) schema = schemaResp.data.schema;
+        } catch (_) {}
+
+        graphVariant = await generateGraphLocal(extractedText, schema, { country, source });
         setStatus('Variant processed successfully.', 'success');
 
         if (graphBase) {
@@ -253,22 +604,19 @@ async function handleFileUpload(event) {
             renderStandaloneGraph(graphVariant['@graph'] || [], 'VARIANT', '#06b6d4');
         }
     } catch (e) {
-        setStatus('Processing failed: ' + (e.response?.data?.error || e.message), 'error');
+        setStatus('Processing failed: ' + e.message, 'error');
     }
 }
 
 function toggleMockMode() {
     const on = document.getElementById('mockModeToggle').checked;
-    if (on) {
-        loadMockGraphs();
-    }
+    if (on) loadMockGraphs();
 }
 
 async function loadMockGraphs() {
     setStatus('Loading mock governance graphs...', 'loading');
 
     try {
-        // Try backend API first, fall back to static files (GitHub Pages)
         let base, variant;
         try {
             const [baseResp, variantResp] = await Promise.all([
@@ -290,7 +638,6 @@ async function loadMockGraphs() {
         graphBase = base;
         graphVariant = variant;
         setStatus('Mock graphs loaded (EU AI Act + Singapore).' + (staticMode ? ' [Static mode]' : ''), 'success');
-
         runComparison();
     } catch (e) {
         setStatus('Mock load failed: ' + (e.response?.data?.error || e.message), 'error');
@@ -408,26 +755,16 @@ function flattenGraph(nodes) {
 
 function getRelationshipColor(label) {
     const colorMap = {
-        // Structural
         defines: '#8b5cf6', contains: '#8b5cf6', includes: '#8b5cf6', has_field: '#a78bfa',
-        // Regulatory action
         requires: '#f59e0b', mandates: '#f59e0b', prohibits: '#ef4444', restricts: '#ef4444',
         governs: '#f59e0b', governed_by: '#f59e0b', must_comply_with: '#f59e0b', constrains: '#f59e0b',
-        // Compliance
         subject_to: '#06b6d4', leads_to: '#06b6d4', may_involve: '#06b6d4', conformity: '#06b6d4',
-        // Mapping/equivalence
         maps_to: '#10b981', similar_to: '#10b981', broader_than: '#22d3ee', narrower_than: '#22d3ee',
-        // Organizational
         established_by: '#3b82f6', published_by: '#3b82f6', enforced_by: '#3b82f6', complemented_by: '#3b82f6',
-        // Flow
         enables: '#a78bfa', supports: '#a78bfa', triggers: '#ec4899',
-        // Risk
         applies_to: '#f97316', classified_as: '#f97316', regulates: '#f97316',
-        // Data
         ensures: '#14b8a6', must_address: '#14b8a6', must_register_in: '#14b8a6',
-        // Testing
         tests: '#10b981', considers: '#94a3b8',
-        // Default
         related_to: '#666', references: '#94a3b8'
     };
     return colorMap[label] || '#666';
@@ -438,7 +775,6 @@ function getRelationshipColor(label) {
 function renderStandaloneGraph(rawNodes, graphLabel, defaultColor) {
     const flat = flattenGraph(rawNodes);
     document.getElementById('graphArea').style.display = '';
-
     updateStats(flat.length, '—', '—', '—', '—');
 
     const nodes = [];
@@ -519,7 +855,6 @@ function renderComparisonGraph(results, mode) {
         if (!nodeId) return;
 
         const colors = { MATCH: '#10b981', MISSING: '#ef4444', EXTENSION: '#06b6d4', CONFLICT: '#f59e0b' };
-
         nodes.push({
             id: nodeId,
             label: `${prefix}${node.name || nodeId}\n[${category}]`,
@@ -546,23 +881,18 @@ function renderComparisonGraph(results, mode) {
         edges.push({ from, to, arrows: 'to', label, color: { color, opacity: 0.7 }, width: 1.5, font: { size: 10, color: '#999', strokeWidth: 0 } });
     };
 
-    // Build variant→display ID mapping
     const variantToDisplayId = {};
     matches.forEach(m => { if (m.matchedWith && m.node) variantToDisplayId[m.matchedWith] = m.node.id; });
     conflicts.forEach(c => { if (c.variantNode && c.baseNode) variantToDisplayId[c.variantNode.id] = c.baseNode.id; });
     const resolveId = (id) => variantToDisplayId[id] || id;
 
-    // Build edges from all items
     const allItems = [...matches, ...missing, ...extensions];
     conflicts.forEach(c => { if (c.baseNode) allItems.push({ node: c.baseNode }); });
 
     allItems.forEach(item => {
         const node = item.node || item.baseNode;
         if (!node) return;
-        const sourceId = node.id;
-        if (!sourceId) return;
-        const displayId = resolveId(sourceId);
-
+        const displayId = resolveId(node.id);
         if (Array.isArray(node.relationships)) {
             node.relationships.forEach(rel => {
                 if (rel && rel.target) addEdge(displayId, resolveId(rel.target), rel.label, getRelationshipColor(rel.label));
@@ -573,7 +903,6 @@ function renderComparisonGraph(results, mode) {
         (node.hasField || []).forEach(c => { if (typeof c === 'string') addEdge(displayId, resolveId(c), 'contains', '#8b5cf6'); });
     });
 
-    // Variant relationships from matched nodes
     matches.forEach(m => {
         if (m.variantNode) {
             const displayId = m.node.id;
@@ -585,7 +914,6 @@ function renderComparisonGraph(results, mode) {
         }
     });
 
-    // Extension node relationships
     extensions.forEach(e => {
         if (Array.isArray(e.node.relationships)) {
             e.node.relationships.forEach(rel => {
@@ -616,10 +944,7 @@ function renderNetwork(nodes, edges) {
                 nodeSpacing: 180
             }
         },
-        physics: {
-            enabled: edges.length === 0,
-            stabilization: { iterations: 150 }
-        }
+        physics: { enabled: edges.length === 0, stabilization: { iterations: 150 } }
     };
 
     network = new vis.Network(document.getElementById('graphContainer'), dataset, options);

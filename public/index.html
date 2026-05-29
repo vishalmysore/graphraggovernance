@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GraphRAG Governance — AI Framework Alignment</title>
-    <link rel="stylesheet" href="style.css?v=1">
+    <link rel="stylesheet" href="style.css?v=3">
     <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
@@ -16,95 +16,147 @@
             <p class="subtitle">AI Framework Alignment & Knowledge Graph Comparison</p>
         </header>
 
-        <!-- Control Panel -->
-        <div class="control-panel">
-            <div class="control-row">
-                <div class="control-group">
-                    <label>Base Framework</label>
-                    <select id="standardSelect">
-                        <option value="EU AI Act">EU AI Act</option>
-                        <option value="Singapore Model AI Governance">Singapore Model AI Governance</option>
-                    </select>
-                </div>
-                <div class="control-group">
-                    <label>API Endpoint</label>
-                    <input type="text" id="apiLink" value="https://integrate.api.nvidia.com/v1" placeholder="API endpoint URL">
-                </div>
-                <div class="control-group">
-                    <label>API Key</label>
-                    <input type="password" id="apiKey" placeholder="Enter API key">
-                </div>
-                <div class="control-group">
-                    <label>Model</label>
-                    <input type="text" id="model" value="nvidia/llama-3.3-nemotron-super-49b-v1" placeholder="Model name">
-                </div>
-            </div>
+        <!-- Tab Navigation -->
+        <div class="tab-nav">
+            <button class="tab-btn active" id="tabBtnFramework" onclick="switchTab('framework')">📊 Framework Analysis</button>
+            <button class="tab-btn" id="tabBtnSearch" onclick="switchTab('search')">🔍 Web Search</button>
+        </div>
 
-            <div class="control-row">
-                <button id="btnLoadBase" class="btn btn-primary" onclick="loadBaseGraph()">📊 Load Base Framework</button>
-                <button id="btnTestApi" class="btn btn-secondary" onclick="testApiConnection()">🔌 Test API</button>
-
-                <div class="mock-toggle">
-                    <label class="toggle-label">
-                        <input type="checkbox" id="mockModeToggle" onchange="toggleMockMode()">
-                        <span class="toggle-slider"></span>
-                        Mock Mode (Sample Data)
-                    </label>
+        <!-- ===== TAB: FRAMEWORK ANALYSIS ===== -->
+        <div id="tabFramework" class="tab-content">
+            <!-- Control Panel -->
+            <div class="control-panel">
+                <div class="control-row">
+                    <div class="control-group">
+                        <label>Base Framework</label>
+                        <select id="standardSelect">
+                            <option value="EU AI Act">EU AI Act</option>
+                            <option value="Singapore Model AI Governance">Singapore Model AI Governance</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Local Model</label>
+                        <select id="modelSelect"></select>
+                    </div>
+                    <div class="control-group" style="align-self:flex-end;">
+                        <button id="btnLoadModel" class="btn btn-secondary" onclick="loadLocalModel()">⚙️ Load Model</button>
+                    </div>
                 </div>
-            </div>
 
-            <!-- PDF Upload -->
-            <div class="upload-section" id="uploadSection">
-                <div class="drop-zone" id="dropZone">
-                    <p>📄 Drop a governance framework PDF here or click to upload</p>
-                    <input type="file" id="fileInput" accept=".pdf" onchange="handleFileUpload(event)" style="display:none">
-                    <div class="upload-meta">
-                        <input type="text" id="country" placeholder="Region/Jurisdiction (e.g., Singapore)" value="Singapore">
-                        <input type="text" id="source" placeholder="Source name" value="Governance Framework">
+                <!-- Model Loading Progress -->
+                <div id="modelProgress" style="display:none; margin: 8px 0;">
+                    <div style="font-size:12px; color:#94a3b8; margin-bottom:4px;" id="modelProgressText">Loading model...</div>
+                    <div style="background:#1e293b; border-radius:4px; height:8px; overflow:hidden;">
+                        <div id="modelProgressBar" style="background:#8b5cf6; height:100%; width:0%; transition:width 0.3s;"></div>
+                    </div>
+                </div>
+
+                <div class="control-row">
+                    <button id="btnLoadBase" class="btn btn-primary" onclick="loadBaseGraph()">📊 Load Base Framework</button>
+                    <div class="mock-toggle">
+                        <label class="toggle-label">
+                            <input type="checkbox" id="mockModeToggle" onchange="toggleMockMode()">
+                            <span class="toggle-slider"></span>
+                            Mock Mode (Sample Data)
+                        </label>
+                    </div>
+                </div>
+
+                <!-- PDF Upload -->
+                <div class="upload-section" id="uploadSection">
+                    <div class="drop-zone" id="dropZone">
+                        <p>📄 Drop a governance framework PDF here or click to upload</p>
+                        <input type="file" id="fileInput" accept=".pdf" onchange="handleFileUpload(event)" style="display:none">
+                        <div class="upload-meta">
+                            <input type="text" id="country" placeholder="Region/Jurisdiction (e.g., Singapore)" value="Singapore">
+                            <input type="text" id="source" placeholder="Source name" value="Governance Framework">
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Graph Display Area -->
-        <div class="graph-area" id="graphArea" style="display:none;">
-            <!-- Stats Bar -->
-            <div class="stats-bar" id="statsBar">
-                <span class="stat match">✅ Matches: <strong id="statMatches">0</strong></span>
-                <span class="stat missing">❌ Missing: <strong id="statMissing">0</strong></span>
-                <span class="stat extension">🔵 Extensions: <strong id="statExtensions">0</strong></span>
-                <span class="stat conflict">⚠️ Conflicts: <strong id="statConflicts">0</strong></span>
-                <span class="stat compliance">📊 Alignment: <strong id="statCompliance">0%</strong></span>
-            </div>
-
-            <!-- View Mode Selector -->
-            <div class="view-controls">
-                <label>View:</label>
-                <select id="viewMode" onchange="switchView()">
-                    <option value="base">Base Framework Only</option>
-                    <option value="diff" selected>Comparison (Diff)</option>
-                    <option value="overlay">Overlay</option>
-                </select>
-                <button class="btn btn-small" onclick="exportComparison()">📥 Export</button>
-            </div>
-
-            <!-- Graph Container -->
-            <div id="graphContainer"></div>
-
-            <!-- Inspector Panel -->
-            <div id="inspector" class="inspector" style="display:none;">
-                <div class="inspector-header">
-                    <h3 id="inspectorTitle">Node Details</h3>
-                    <button onclick="document.getElementById('inspector').style.display='none'">✕</button>
+            <!-- Graph Display Area -->
+            <div class="graph-area" id="graphArea" style="display:none;">
+                <div class="stats-bar" id="statsBar">
+                    <span class="stat match">✅ Matches: <strong id="statMatches">0</strong></span>
+                    <span class="stat missing">❌ Missing: <strong id="statMissing">0</strong></span>
+                    <span class="stat extension">🔵 Extensions: <strong id="statExtensions">0</strong></span>
+                    <span class="stat conflict">⚠️ Conflicts: <strong id="statConflicts">0</strong></span>
+                    <span class="stat compliance">📊 Alignment: <strong id="statCompliance">0%</strong></span>
                 </div>
-                <div id="inspectorContent"></div>
+                <div class="view-controls">
+                    <label>View:</label>
+                    <select id="viewMode" onchange="switchView()">
+                        <option value="base">Base Framework Only</option>
+                        <option value="diff" selected>Comparison (Diff)</option>
+                        <option value="overlay">Overlay</option>
+                    </select>
+                    <button class="btn btn-small" onclick="exportComparison()">📥 Export</button>
+                </div>
+                <div id="graphContainer"></div>
+                <div id="inspector" class="inspector" style="display:none;">
+                    <div class="inspector-header">
+                        <h3 id="inspectorTitle">Node Details</h3>
+                        <button onclick="document.getElementById('inspector').style.display='none'">✕</button>
+                    </div>
+                    <div id="inspectorContent"></div>
+                </div>
             </div>
+
+            <div id="status" class="status-bar"></div>
         </div>
 
-        <!-- Status -->
-        <div id="status" class="status-bar"></div>
+        <!-- ===== TAB: WEB SEARCH ===== -->
+        <div id="tabSearch" class="tab-content" style="display:none;">
+            <div class="control-panel">
+                <div class="control-row">
+                    <div class="control-group" style="flex:1;">
+                        <label>Search Query</label>
+                        <input type="text" id="searchQuery" placeholder="e.g. EU AI Act risk categories, NIST AI RMF requirements..." onkeydown="if(event.key==='Enter') runWebSearch()">
+                    </div>
+                    <div class="control-group" style="align-self:flex-end;">
+                        <button class="btn btn-primary" onclick="runWebSearch()">🔍 Search</button>
+                    </div>
+                </div>
+
+                <!-- Search Results -->
+                <div id="searchResults" style="display:none; margin-top:12px;">
+                    <div style="font-size:13px; color:#94a3b8; margin-bottom:8px;">Sources found:</div>
+                    <div id="searchResultsList" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;"></div>
+
+                    <div class="control-row" style="gap:10px;">
+                        <button class="btn btn-primary" onclick="buildSearchGraph('base')" id="btnSearchBase">📊 Use as Base Graph</button>
+                        <button class="btn btn-secondary" onclick="buildSearchGraph('variant')" id="btnSearchVariant">🔀 Use as Variant Graph</button>
+                    </div>
+                </div>
+
+                <!-- Search Graph Progress -->
+                <div id="searchProgress" style="display:none; margin-top:10px;">
+                    <div style="font-size:12px; color:#94a3b8; margin-bottom:4px;" id="searchProgressText">Building graph...</div>
+                    <div style="background:#1e293b; border-radius:4px; height:8px; overflow:hidden;">
+                        <div id="searchProgressBar" style="background:#06b6d4; height:100%; width:0%; transition:width 0.5s;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Graph Area -->
+            <div class="graph-area" id="searchGraphArea" style="display:none;">
+                <div class="stats-bar">
+                    <span id="searchGraphLabel" style="color:#06b6d4; font-weight:bold;"></span>
+                    <span class="stat" style="margin-left:auto;">Nodes: <strong id="searchNodeCount">0</strong></span>
+                </div>
+                <div class="view-controls">
+                    <span style="font-size:13px; color:#94a3b8;">Graph generated from web search</span>
+                    <button class="btn btn-small" onclick="switchToFrameworkTab()">↗ Compare in Framework Tab</button>
+                </div>
+                <div id="searchGraphContainer"></div>
+            </div>
+
+            <div id="searchStatus" class="status-bar"></div>
+        </div>
     </div>
 
-    <script src="app.js?v=1"></script>
+    <script src="llm.js"></script>
+    <script src="app.js?v=3"></script>
 </body>
 </html>
