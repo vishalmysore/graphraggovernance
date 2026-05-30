@@ -4,6 +4,9 @@
   "type": "module",
   "main": "server.mjs",
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "start": "node server.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -17,6 +20,7 @@
   "license": "ISC",
   "description": "AI Governance Knowledge Graph Alignment & GraphRAG System",
   "dependencies": {
+    "@mlc-ai/web-llm": "^0.2.84",
     "axios": "^1.13.6",
     "cheerio": "^1.2.0",
     "cors": "^2.8.6",
@@ -24,5 +28,8 @@
     "multer": "^2.1.1",
     "pdf-parse": "^1.1.1",
     "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "vite": "^8.0.14"
   }
 }

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GraphRAG Governance — AI Framework Alignment</title>
+    <link rel="stylesheet" href="./style.css">
+    <!-- COI service worker: injects COOP/COEP headers so SharedArrayBuffer works on GitHub Pages -->
+    <script>
+      if (typeof SharedArrayBuffer === 'undefined') {
+        const sw = navigator.serviceWorker;
+        if (sw) {
+          sw.register('./coi-serviceworker.js').then(() => {
+            if (!sw.controller) window.location.reload();
+          });
+        }
+      }
+    </script>
+    <script src="./vis-network.min.js"></script>
+    <script src="./axios.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>🏛️ GraphRAG Governance</h1>
+            <p class="subtitle">AI Framework Alignment & Knowledge Graph Comparison</p>
+        </header>
+
+        <div class="control-panel">
+            <div class="control-row">
+                <div class="control-group">
+                    <label>Base Framework</label>
+                    <select id="standardSelect">
+                        <option value="EU AI Act">EU AI Act</option>
+                        <option value="Singapore Model AI Governance">Singapore Model AI Governance</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Local Model (WebLLM)</label>
+                    <select id="modelSelect"></select>
+                </div>
+                <div class="control-group" style="align-self:flex-end;">
+                    <button id="btnLoadModel" class="btn btn-secondary" onclick="window._loadLocalModel()">⚙️ Load Model</button>
+                </div>
+            </div>
+
+            <!-- Model loading progress (advancedRag-style) -->
+            <div id="modelProgressBanner" style="display:none; margin:10px 0;">
+                <div id="progressTitle" style="font-size:12px; color:#94a3b8; margin-bottom:4px;">Loading…</div>
+                <div style="background:#1e293b; border-radius:4px; height:8px; overflow:hidden; margin-bottom:4px;">
+                    <div id="progressBarFill" style="background:#8b5cf6; height:100%; width:0%; transition:width 0.3s;"></div>
+                </div>
+                <div id="progressFileName" style="font-size:11px; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+            </div>
+
+            <div class="control-row">
+                <button id="btnLoadBase" class="btn btn-primary" onclick="window._loadBaseGraph()">📊 Load Base Framework</button>
+                <div class="mock-toggle">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="mockModeToggle" onchange="window._toggleMockMode()">
+                        <span class="toggle-slider"></span>
+                        Mock Mode (Sample Data)
+                    </label>
+                </div>
+            </div>
+
+            <div class="upload-section">
+                <div class="drop-zone" id="dropZone">
+                    <p>📄 Drop a governance framework PDF here or click to upload</p>
+                    <input type="file" id="fileInput" accept=".pdf" onchange="window._handleFileUpload(event)" style="display:none">
+                    <div class="upload-meta">
+                        <input type="text" id="country" placeholder="Region/Jurisdiction (e.g., Singapore)" value="Singapore">
+                        <input type="text" id="source" placeholder="Source name" value="Governance Framework">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="graph-area" id="graphArea" style="display:none;">
+            <div class="stats-bar">
+                <span class="stat match">✅ Matches: <strong id="statMatches">0</strong></span>
+                <span class="stat missing">❌ Missing: <strong id="statMissing">0</strong></span>
+                <span class="stat extension">🔵 Extensions: <strong id="statExtensions">0</strong></span>
+                <span class="stat conflict">⚠️ Conflicts: <strong id="statConflicts">0</strong></span>
+                <span class="stat compliance">📊 Alignment: <strong id="statCompliance">0%</strong></span>
+            </div>
+            <div class="view-controls">
+                <label>View:</label>
+                <select id="viewMode" onchange="window._switchView()">
+                    <option value="base">Base Framework Only</option>
+                    <option value="diff" selected>Comparison (Diff)</option>
+                    <option value="overlay">Overlay</option>
+                </select>
+                <button class="btn btn-small" onclick="window._exportComparison()">📥 Export</button>
+            </div>
+            <div id="graphContainer"></div>
+            <div id="inspector" class="inspector" style="display:none;">
+                <div class="inspector-header">
+                    <h3 id="inspectorTitle">Node Details</h3>
+                    <button onclick="document.getElementById('inspector').style.display='none'">✕</button>
+                </div>
+                <div id="inspectorContent"></div>
+            </div>
+        </div>
+
+        <div id="status" class="status-bar"></div>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+</body>
+</html>
