@@ -6,6 +6,12 @@ const WEBLLM_MODELS = [
     { id: 'gemma-2-2b-it-q4f32_1-MLC', label: 'Gemma 2 2B' },
 ];
 
+// Resolve worker path relative to this script's location (handles GitHub Pages subpaths)
+const _SCRIPT_BASE = (() => {
+    const src = document.currentScript?.src || '';
+    return src ? src.substring(0, src.lastIndexOf('/') + 1) : './';
+})();
+
 let worker = null;
 let workerReady = false;
 let pendingRequests = {};
@@ -13,7 +19,7 @@ let requestCounter = 0;
 
 function initWorker(onProgress) {
     return new Promise((resolve, reject) => {
-        worker = new Worker('/worker.js', { type: 'module' });
+        worker = new Worker(_SCRIPT_BASE + 'worker.js', { type: 'module' });
         worker.onmessage = ({ data }) => {
             if (data.type === 'progress') {
                 if (onProgress) onProgress(data.text, data.progress);

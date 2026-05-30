@@ -5,8 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GraphRAG Governance — AI Framework Alignment</title>
     <link rel="stylesheet" href="style.css?v=3">
-    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- COI service worker: enables SharedArrayBuffer required by WebLLM/WebGPU on GitHub Pages -->
+    <script>
+      if (typeof SharedArrayBuffer === 'undefined') {
+        const sw = navigator.serviceWorker;
+        if (sw) sw.register('./coi-serviceworker.js').then(() => { if (!sw.controller) window.location.reload(); });
+      }
+    </script>
+    <script src="vis-network.min.js"></script>
+    <script src="axios.min.js"></script>
 </head>
 <body>
     <div class="app-container">
