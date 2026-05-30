@@ -3,6 +3,7 @@
  * Local WebLLM inference (no API key). Same pattern as advancedRagDemo.
  */
 import { WEBLLM_MODELS, loadModel, callLLM, isReady } from './llm.js'
+import axios from 'axios'
 
 // ── Expose onclick handlers to window ────────────────────────────────
 window._loadLocalModel   = loadLocalModel
