@@ -1,9 +1,27 @@
 /**
  * GraphRAG Governance — Frontend
- * Local WebLLM inference (no API key). Same pattern as advancedRagDemo.
+ * Fully static: local WebLLM inference + client-side PDF parsing. No server required.
  */
 import { WEBLLM_MODELS, loadModel, callLLM, isReady } from './llm.js'
 import axios from 'axios'
+import * as pdfjsLib from 'pdfjs-dist'
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url
+).href
+
+async function extractPdfText(file) {
+  const arrayBuffer = await file.arrayBuffer()
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+  const pages = []
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i)
+    const content = await page.getTextContent()
+    pages.push(content.items.map(item => item.str).join(' '))
+  }
+  return pages.join('\n')
+}
 
 // ── Expose onclick handlers to window ────────────────────────────────
 window._loadLocalModel   = loadLocalModel
@@ -165,6 +183,13 @@ function updateStats(matches, missing, extensions, conflicts, compliance) {
   document.getElementById('statCompliance').textContent = compliance
 }
 
+// ── Static-file spec loader (replaces /api/get-spec) ─────────────────
+const SPEC_FILES = {
+  'EU AI Act': 'data/eu_ai_act.jsonld',
+  'Singapore Model AI Governance': 'data/singapore_model_ai_governance.jsonld',
+}
+const GRAPH_CACHE_KEY = standard => `graphrag_cache_${standard}`
+
 // ── Actions ───────────────────────────────────────────────────────────
 async function loadBaseGraph() {
   if (!isReady()) { setStatus('Please load a local model first.', 'error'); return }
@@ -172,18 +197,19 @@ async function loadBaseGraph() {
   setStatus(`Loading base framework: ${standard}…`, 'loading')
 
   try {
-    const resp = await axios.get('/api/get-spec', { params: { standard } })
-    const { specText, cached, graph: cachedGraph } = resp.data
-
+    const cached = localStorage.getItem(GRAPH_CACHE_KEY(standard))
     if (cached) {
-      graphBase = cachedGraph
+      graphBase = JSON.parse(cached)
       setStatus('Base framework loaded (cached).', 'success')
     } else {
+      const specFile = SPEC_FILES[standard] || SPEC_FILES['EU AI Act']
+      const resp = await axios.get(specFile)
+      const specText = JSON.stringify(resp.data)
       setStatus(`Inferring schema for ${standard}…`, 'loading')
       const schema = await inferSchemaLocal(standard, specText)
       setStatus(`Building base graph…`, 'loading')
       graphBase = await generateGraphLocal(specText, schema, { country: 'Base', source: `Spec: ${standard}` })
-      await axios.post('/api/cache-graph', { standard, graph: graphBase, schema })
+      try { localStorage.setItem(GRAPH_CACHE_KEY(standard), JSON.stringify(graphBase)) } catch (_) {}
       setStatus('Base framework loaded.', 'success')
     }
 
@@ -204,16 +230,10 @@ async function handleFileUpload(event) {
   setStatus(`Parsing ${file.name}…`, 'loading')
 
   try {
-    const formData = new FormData()
-    formData.append('file', file)
-    const parseResp = await axios.post('/api/parse-pdf', formData)
-    const extractedText = parseResp.data.text
+    const extractedText = await extractPdfText(file)
 
-    let schema = { '@context': {}, '@graph': [], name: standard }
-    try {
-      const sr = await axios.get('/api/get-schema', { params: { standard } })
-      if (sr.data.schema) schema = sr.data.schema
-    } catch (_) {}
+    const cachedSchema = localStorage.getItem(GRAPH_CACHE_KEY(standard))
+    const schema = cachedSchema ? JSON.parse(cachedSchema) : { '@context': {}, '@graph': [], name: standard }
 
     setStatus(`Generating variant graph for ${country}…`, 'loading')
     graphVariant = await generateGraphLocal(extractedText, schema, { country, source })
@@ -231,17 +251,13 @@ function toggleMockMode() {
 async function loadMockGraphs() {
   setStatus('Loading mock graphs…', 'loading')
   try {
-    let base, variant
-    try {
-      const [br, vr] = await Promise.all([axios.post('/api/mock/base'), axios.post('/api/mock/variant')])
-      base = br.data.graph; variant = vr.data.graph
-    } catch (_) {
-      staticMode = true
-      const [br, vr] = await Promise.all([axios.get('data/eu_ai_act.jsonld'), axios.get('data/singapore_model_ai_governance.jsonld')])
-      base = br.data; variant = vr.data
-    }
-    graphBase = base; graphVariant = variant
-    setStatus('Mock graphs loaded.' + (staticMode ? ' [Static]' : ''), 'success')
+    staticMode = true
+    const [br, vr] = await Promise.all([
+      axios.get('data/eu_ai_act.jsonld'),
+      axios.get('data/singapore_model_ai_governance.jsonld')
+    ])
+    graphBase = br.data; graphVariant = vr.data
+    setStatus('Mock graphs loaded. [Static]', 'success')
     runComparison()
   } catch (e) { setStatus('Mock load failed: ' + e.message, 'error') }
 }
@@ -250,16 +266,8 @@ async function runComparison() {
   if (!graphBase || !graphVariant) return
   setStatus('Comparing frameworks…', 'loading')
   try {
-    let results
-    if (staticMode) {
-      results = compareGraphsLocal(graphBase, graphVariant)
-    } else {
-      try {
-        const r = await axios.post('/api/compare', { graphBase, graphVariant })
-        results = r.data.results
-      } catch (_) { staticMode = true; results = compareGraphsLocal(graphBase, graphVariant) }
-    }
-    setStatus('Comparison complete.' + (staticMode ? ' [Client-side]' : ''), 'success')
+    const results = compareGraphsLocal(graphBase, graphVariant)
+    setStatus('Comparison complete. [Client-side]', 'success')
     renderResults(results)
   } catch (e) { setStatus('Comparison failed: ' + e.message, 'error') }
 }
@@ -267,8 +275,8 @@ async function runComparison() {
 async function exportComparison() {
   if (!lastResults) return
   try {
-    const r = await axios.post('/api/export-comparison', { graphBase, graphVariant, comparisonResults: lastResults })
-    const blob = new Blob([JSON.stringify(r.data, null, 2)], { type: 'application/json' })
+    const payload = { graphBase, graphVariant, comparisonResults: lastResults }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
     const url  = URL.createObjectURL(blob)
     const a    = Object.assign(document.createElement('a'), { href: url, download: 'governance_comparison.json' })
     a.click(); URL.revokeObjectURL(url)
